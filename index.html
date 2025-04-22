@@ -29,93 +29,152 @@
       <canvas id="weatherChart" class="mt-4"></canvas>
     </div>
 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Comparison App</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h2 class="text-center">Weather Comparison App</h2>
+      <div class="input-group mb-3">
+        <input
+          type="text"
+          id="cityInput"
+          class="form-control"
+          placeholder="Enter city names (comma-separated)"
+        />
+        <button class="btn btn-primary" onclick="fetchWeather()">
+          Compare
+        </button>
+      </div>
+      <div id="weatherCards" class="row"></div>
+      <canvas id="weatherChart" class="mt-4"></canvas>
+    </div>
+
     <script>
-      async function fetchWeather() {
-        const apiKey = "d49f768bd5ea4f249972455f214cadfe"; // Reemplaza con tu clave de OpenWeatherMap
+      <script>
+  // Función principal que se ejecuta al presionar el botón "Compare"
+  async function fetchWeather() {
+    const apiKey = "d49f768bd5ea4f249972455f214cadfe"; // Clave de API de OpenWeatherMap
 
-        // use la key del ejemplo que nos dieron ya que cree varias key y no me sirivieron
-        // mi key : 2b61531ab746c33dd828969d0e47bb14
+    // NOTA PERSONAL: usé la key del ejemplo que nos dieron porque las que creé no me funcionaron
+    // Mi propia key: 2b61531ab746c33dd828969d0e47bb14
 
-        const cityInput = document.getElementById("cityInput").value;
-        const cities = cityInput.split(",").map((city) => city.trim());
+    // Obtener el valor ingresado por el usuario en el input
+    const cityInput = document.getElementById("cityInput").value;
 
-        if (cities.length === 0 || cities[0] === "") {
-          alert("Please enter at least one city name.");
-          return;
-        }
+    // Dividir el texto en ciudades separadas por coma, y eliminar espacios innecesarios
+    const cities = cityInput.split(",").map((city) => city.trim());
 
-        const weatherCards = document.getElementById("weatherCards");
-        weatherCards.innerHTML = "";
+    // Validación básica: si no se ingresó ninguna ciudad, se muestra un mensaje
+    if (cities.length === 0 || cities[0] === "") {
+      alert("Please enter at least one city name.");
+      return;
+    }
 
-        const requests = cities.map((city) =>
-          fetch(
-            `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
-          )
-            .then((response) => response.json())
-            .catch((error) => console.error("Error fetching weather:", error))
-        );
+    // Seleccionar el contenedor donde se mostrarán las tarjetas de clima
+    const weatherCards = document.getElementById("weatherCards");
 
-        const weatherData = await Promise.all(requests);
+    // Limpiar el contenido previo de tarjetas (si había resultados anteriores)
+    weatherCards.innerHTML = "";
 
-        const labels = [];
-        const temperatures = [];
+    // Generar una lista de promesas que hacen la petición a la API por cada ciudad
+    const requests = cities.map((city) =>
+      fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
+      )
+        .then((response) => response.json()) // Convertir la respuesta a JSON
+        .catch((error) => console.error("Error fetching weather:", error)) // Capturar errores
+    );
 
-        weatherData.forEach((data) => {
-          if (data.cod !== 200) {
-            alert(`Error fetching weather for city: ${data.message}`);
-            return;
-          }
+    // Esperar a que todas las peticiones se resuelvan
+    const weatherData = await Promise.all(requests);
 
-          labels.push(data.name);
-          temperatures.push(data.main.temp);
+    // Arreglos para guardar los datos que usaremos en la gráfica
+    const labels = [];        // Nombre de las ciudades
+    const temperatures = [];  // Temperaturas correspondientes
 
-          const card = `
-                    <div class="col-md-4 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">${data.name}, ${data.sys.country}</h5>
-                                <p class="card-text">Temperature: ${data.main.temp}°C</p>
-                                <p class="card-text">${data.weather[0].description}</p>
-                                <p class="card-text">Humidity: ${data.main.humidity}%</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-          weatherCards.innerHTML += card;
-        });
-
-        updateChart(labels, temperatures);
+    // Recorrer los datos obtenidos de cada ciudad
+    weatherData.forEach((data) => {
+      // Si hubo un error con alguna ciudad (por ejemplo, no se encontró), mostrar alerta
+      if (data.cod !== 200) {
+        alert(`Error fetching weather for city: ${data.message}`);
+        return;
       }
 
-      function updateChart(labels, temperatures) {
-        const ctx = document.getElementById("weatherChart").getContext("2d");
-        if (window.weatherChart instanceof Chart) {
-          window.weatherChart.destroy();
-        }
-        window.weatherChart = new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: "Temperature (°C)",
-                data: temperatures,
-                backgroundColor: "rgba(54, 162, 235, 0.5)",
-                borderColor: "rgba(54, 162, 235, 1)",
-                borderWidth: 1,
-              },
-            ],
+      // Guardar el nombre de la ciudad y su temperatura para la gráfica
+      labels.push(data.name);
+      temperatures.push(data.main.temp);
+
+      // Crear una tarjeta HTML con los datos del clima de la ciudad
+      const card = `
+        <div class="col-md-4 mb-3">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">${data.name}, ${data.sys.country}</h5>
+              <p class="card-text">Temperature: ${data.main.temp}°C</p>
+              <p class="card-text">${data.weather[0].description}</p>
+              <p class="card-text">Humidity: ${data.main.humidity}%</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Agregar la tarjeta al contenedor de resultados
+      weatherCards.innerHTML += card;
+    });
+
+    // Llamar a la función que actualiza la gráfica con los nuevos datos
+    updateChart(labels, temperatures);
+  }
+
+  // Función que crea o actualiza la gráfica con los datos de temperatura
+  function updateChart(labels, temperatures) {
+    // Obtener el contexto del canvas (donde se dibujará la gráfica)
+    const ctx = document.getElementById("weatherChart").getContext("2d");
+
+    // Si ya existe una gráfica anterior, la eliminamos para evitar superposición
+    if (window.weatherChart instanceof Chart) {
+      window.weatherChart.destroy();
+    }
+
+    // Crear una nueva gráfica de barras usando Chart.js
+    window.weatherChart = new Chart(ctx, {
+      type: "bar", // Tipo de gráfica: barras verticales
+      data: {
+        labels: labels, // Nombres de ciudades (eje X)
+        datasets: [
+          {
+            label: "Temperature (°C)", // Etiqueta del conjunto de datos
+            data: temperatures, // Datos de temperatura para cada ciudad
+            backgroundColor: "rgba(54, 162, 235, 0.5)", // Color del interior de las barras
+            borderColor: "rgba(54, 162, 235, 1)",       // Borde de las barras
+            borderWidth: 1,                             // Grosor del borde
           },
-          options: {
-            responsive: true,
-            scales: {
-              y: {
-                beginAtZero: true,
-              },
-            },
+        ],
+      },
+      options: {
+        responsive: true, // Se adapta al tamaño de la pantalla
+        scales: {
+          y: {
+            beginAtZero: true, // El eje Y comienza desde 0
           },
-        });
-      }
-    </script>
+        },
+      },
+    });
+  }
+</script>
+
+  </body>
+</html>
   </body>
 </html>
